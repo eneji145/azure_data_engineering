@@ -1,0 +1,24 @@
+{
+	"name": "update_the_dedicated_sql_pool_every_5_mins",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "Pipeline_to_move_activitylog_from_datalake_to_dedicated_sql_pool",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Minute",
+				"interval": 5,
+				"startTime": "2024-08-30T13:17:00",
+				"timeZone": "GMT Standard Time"
+			}
+		}
+	}
+}
