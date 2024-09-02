@@ -15,6 +15,14 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'dedicated_sql_pool_linked_service'"
 		},
+		"AzureBlobStorage1_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'AzureBlobStorage1'"
+		},
+		"AzureSqlDatabase1_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'AzureSqlDatabase1'"
+		},
 		"AzureDataLakeStorage_linked_service_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://enejistorage.dfs.core.windows.net/"
@@ -50,6 +58,32 @@
 				"type": "AzureSqlDW",
 				"typeProperties": {
 					"connectionString": "[parameters('dedicated_sql_pool_linked_service_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureBlobStorage1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"connectionString": "[parameters('AzureBlobStorage1_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureSqlDatabase1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('AzureSqlDatabase1_connectionString')]"
 				}
 			},
 			"dependsOn": []
@@ -191,6 +225,143 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/dedicated_sql_pool_linked_service')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Json_nsg_file')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureBlobStorage1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "PT1H.json",
+						"container": "nsg-log"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"records": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"time": {
+										"type": "string"
+									},
+									"systemId": {
+										"type": "string"
+									},
+									"macAddress": {
+										"type": "string"
+									},
+									"category": {
+										"type": "string"
+									},
+									"resourceId": {
+										"type": "string"
+									},
+									"operationName": {
+										"type": "string"
+									},
+									"properties": {
+										"type": "object",
+										"properties": {
+											"Version": {
+												"type": "integer"
+											},
+											"flows": {
+												"type": "array",
+												"items": {
+													"type": "object",
+													"properties": {
+														"rule": {
+															"type": "string"
+														},
+														"flows": {
+															"type": "array",
+															"items": {
+																"type": "object",
+																"properties": {
+																	"mac": {
+																		"type": "string"
+																	},
+																	"flowTuples": {
+																		"type": "array",
+																		"items": {
+																			"type": "string"
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureBlobStorage1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureSqlTable1')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "Time",
+						"type": "datetimeoffset",
+						"scale": 7
+					},
+					{
+						"name": "Rule",
+						"type": "varchar"
+					},
+					{
+						"name": "SourceIPAddress",
+						"type": "varchar"
+					},
+					{
+						"name": "DestinationIPAddress",
+						"type": "varchar"
+					},
+					{
+						"name": "SourcePort",
+						"type": "varchar"
+					},
+					{
+						"name": "Decision",
+						"type": "varchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "nsg_flow_log_data"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
 			]
 		},
 		{
@@ -397,6 +568,99 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/activity_log_csv_input_stream')]",
 				"[concat(variables('factoryId'), '/datasets/dedicated_sql_pool_sink_stream')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline_to_process_nsg_flow_logs')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "Json_nsg_file",
+								"type": "DatasetReference"
+							},
+							"name": "nsglogfileunprocessed"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "AzureSqlTable1",
+								"type": "DatasetReference"
+							},
+							"name": "destinationNsglogfilesProcessed"
+						}
+					],
+					"transformations": [
+						{
+							"name": "flatten1"
+						},
+						{
+							"name": "extractingColumnsOfInterest"
+						},
+						{
+							"name": "selectingColumnsOfInterest"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          records as (time as string, systemId as string, macAddress as string, category as string, resourceId as string, operationName as string, properties as (Version as integer, flows as (rule as string, flows as (mac as string, flowTuples as string[])[])[]))[]",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     documentForm: 'arrayOfDocuments') ~> nsglogfileunprocessed",
+						"nsglogfileunprocessed foldDown(unrollMultiple(records,records.properties.flows.flows.flowTuples),",
+						"     mapColumn(",
+						"          records,",
+						"          flowTuples = records.properties.flows.flows.flowTuples",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> flatten1",
+						"flatten1 derive(time = records.time,",
+						"          rule = records.properties.flows.rule,",
+						"          SourceIPAddress = split(flowTuples,',')[2],",
+						"          DestinationIPAddress = split(flowTuples,',')[3],",
+						"          SourcePort = split(flowTuples,',')[5],",
+						"          Decision = split(flowTuples,',')[8]) ~> extractingColumnsOfInterest",
+						"extractingColumnsOfInterest select(mapColumn(",
+						"          time,",
+						"          rule,",
+						"          SourceIPAddress,",
+						"          DestinationIPAddress,",
+						"          SourcePort,",
+						"          Decision",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectingColumnsOfInterest",
+						"selectingColumnsOfInterest sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          Time as string,",
+						"          Rule as string,",
+						"          SourceIPAddress as string,",
+						"          DestinationIPAddress as string,",
+						"          SourcePort as string,",
+						"          Decision as string",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> destinationNsglogfilesProcessed"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/Json_nsg_file')]",
+				"[concat(variables('factoryId'), '/datasets/AzureSqlTable1')]"
 			]
 		}
 	]

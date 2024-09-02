@@ -15,6 +15,14 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'dedicated_sql_pool_linked_service'"
 		},
+		"AzureBlobStorage1_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'AzureBlobStorage1'"
+		},
+		"AzureSqlDatabase1_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'AzureSqlDatabase1'"
+		},
 		"AzureDataLakeStorage_linked_service_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://enejistorage.dfs.core.windows.net/"
@@ -51,6 +59,12 @@
 					},
 					"dedicated_sql_pool_linked_service_connectionString": {
 						"value": "[parameters('dedicated_sql_pool_linked_service_connectionString')]"
+					},
+					"AzureBlobStorage1_connectionString": {
+						"value": "[parameters('AzureBlobStorage1_connectionString')]"
+					},
+					"AzureSqlDatabase1_connectionString": {
+						"value": "[parameters('AzureSqlDatabase1_connectionString')]"
 					},
 					"AzureDataLakeStorage_linked_service_properties_typeProperties_url": {
 						"value": "[parameters('AzureDataLakeStorage_linked_service_properties_typeProperties_url')]"
