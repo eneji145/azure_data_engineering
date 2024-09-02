@@ -1,0 +1,42 @@
+{
+	"name": "AzureSqlTable1",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "Time",
+				"type": "datetimeoffset",
+				"scale": 7
+			},
+			{
+				"name": "Rule",
+				"type": "varchar"
+			},
+			{
+				"name": "SourceIPAddress",
+				"type": "varchar"
+			},
+			{
+				"name": "DestinationIPAddress",
+				"type": "varchar"
+			},
+			{
+				"name": "SourcePort",
+				"type": "varchar"
+			},
+			{
+				"name": "Decision",
+				"type": "varchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "nsg_flow_log_data"
+		}
+	}
+}

@@ -1,0 +1,87 @@
+{
+	"name": "pipeline_to_process_nsg_flow_logs",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "Json_nsg_file",
+						"type": "DatasetReference"
+					},
+					"name": "nsglogfileunprocessed"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference"
+					},
+					"name": "destinationNsglogfilesProcessed"
+				}
+			],
+			"transformations": [
+				{
+					"name": "flatten1"
+				},
+				{
+					"name": "extractingColumnsOfInterest"
+				},
+				{
+					"name": "selectingColumnsOfInterest"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          records as (time as string, systemId as string, macAddress as string, category as string, resourceId as string, operationName as string, properties as (Version as integer, flows as (rule as string, flows as (mac as string, flowTuples as string[])[])[]))[]",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     documentForm: 'arrayOfDocuments') ~> nsglogfileunprocessed",
+				"nsglogfileunprocessed foldDown(unrollMultiple(records,records.properties.flows.flows.flowTuples),",
+				"     mapColumn(",
+				"          records,",
+				"          flowTuples = records.properties.flows.flows.flowTuples",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> flatten1",
+				"flatten1 derive(time = records.time,",
+				"          rule = records.properties.flows.rule,",
+				"          SourceIPAddress = split(flowTuples,',')[2],",
+				"          DestinationIPAddress = split(flowTuples,',')[3],",
+				"          SourcePort = split(flowTuples,',')[5],",
+				"          Decision = split(flowTuples,',')[8]) ~> extractingColumnsOfInterest",
+				"extractingColumnsOfInterest select(mapColumn(",
+				"          time,",
+				"          rule,",
+				"          SourceIPAddress,",
+				"          DestinationIPAddress,",
+				"          SourcePort,",
+				"          Decision",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectingColumnsOfInterest",
+				"selectingColumnsOfInterest sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          Time as string,",
+				"          Rule as string,",
+				"          SourceIPAddress as string,",
+				"          DestinationIPAddress as string,",
+				"          SourcePort as string,",
+				"          Decision as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> destinationNsglogfilesProcessed"
+			]
+		}
+	}
+}
